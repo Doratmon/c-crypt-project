@@ -1,0 +1,26 @@
+{
+	"servers": {
+		"context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@upstash/context7-mcp"
+			]
+		},
+		"sequential-thinking": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@smithery/cli@latest",
+				"run",
+				"@smithery-ai/server-sequential-thinking",
+				"--key",
+				"a843b33e-0356-4616-bd05-b5795c9c098e",
+				"--profile",
+				"keen-pig-O0R7UE"
+			]
+		}
+	},
+	"inputs": []
+}
