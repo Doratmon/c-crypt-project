@@ -58,11 +58,11 @@ applyTo: '**'
   - **严禁**在日志中记录敏感数据（密码、Token、PII）。
 
 ## 4. 文档与注释
-- **原则**：解释“为什么”而不是“是什么”。
+- **原则**：解释“为什么”而不是“是什么”，注释采用中文。
 - **API 文档**：所有 Public 类/接口/方法必须包含文档注释（Javadoc/JSDoc/Docstring/Doxygen）。
 - **版权头**：每个生成的新文件顶部必须包含以下版权声明（年份和作者根据上下文自动调整）：
 
-```text
+----
 /*
  * Copyright 2025 [Author Name]
  *
@@ -78,7 +78,7 @@ applyTo: '**'
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-````
+----
 
 ## 5. 安全性 (Security)
 
@@ -182,3 +182,67 @@ applyTo: '**'
 4.  **消除假设**：所有的中间假设或待定逻辑都已被验证或解决。
 
 ### Context7
+
+利用@Context7服务获取实时的、特定版本的官方文档和代码示例，消除代码生成中的幻觉（Hallucinations），确保第三方库、SDK 及 API 调用的准确性与时效性。
+
+#### 何时使用
+
+* 生成涉及第三方库（如 Next.js, Tailwind CSS, Upstash, Stripe, Supabase 等）的代码时。
+* 需要处理快速迭代、版本更新频繁的技术栈时。
+* 用户在提示词中显式包含 "use context7" 指令时。
+* 遇到“API 不存在”或“方法已弃用”的错误修复场景时。
+* 编写配置文件（Config）或脚手架（Boilerplate）代码时。
+
+#### 核心原则与工作流
+
+**1. 库识别与解析 (Identify & Resolve)**
+* 动作：分析用户提示词，提取涉及的所有第三方库名称。
+* 工具应用：如果库名称不明确，应尝试推断或使用 resolve-library-id 工具来获取 Context7 数据库中对应的准确 Library ID。
+
+**2. 权威文档获取 (Retrieve Authority)**
+* 动作：在生成代码前，必须获取最新的文档上下文，而非依赖模型内部的训练数据（尤其是对于 2023 年以后的新特性）。
+* 工具应用：调用 get-library-docs 工具，传入准确的 Library ID，获取相关的 API 说明和代码片段。
+
+**3. 事实核查与优先 (Fact Check & Prioritize)**
+* 动作：将 Context7 返回的文档内容视为单一真实来源 (Single Source of Truth)。
+* 冲突处理：如果 Context7 返回的代码模式与模型记忆中的模式冲突，必须采用 Context7 的版本。
+
+**4. 版本一致性 (Version Consistency)**
+* 动作：确保生成的代码语法与当前文档的版本相匹配。避免混用不同版本（例如 Next.js Pages Router 与 App Router）的语法。
+
+#### 关键指令与触发器
+
+以下定义了 AI 应如何响应特定的意图：
+
+**指令：use context7**
+* 触发行为：这是一个强制指令。AI 必须在回答前调用 Context7 MCP 工具查询文档。
+* 响应策略：先展示“正在查询 [Library Name] 的最新文档...”，获取结果后，再基于文档生成代码。
+
+**场景：Code Generation (代码生成)**
+* 触发行为：当用户要求“写一个使用 [Library] 的功能”时。
+* 响应策略：自动检查是否掌握该 Library 的最新 API。如果信心不足，隐式触发文档查询。
+
+**场景：Error Debugging (错误调试)**
+* 触发行为：当用户粘贴关于“Method not found”或“Type error”的报错时。
+* 响应策略：假设用户的库版本与模型训练数据不一致，优先使用 Context7 查询该报错相关的 API 变更记录。
+
+#### 最终输出要求
+
+生成的代码和回答必须满足：
+
+1. 准确性：所有 API 调用、参数传递必须有文档支持，严禁猜测参数名称。
+2. 引用说明：在回答的开头或结尾，简要说明参考了哪些库的官方文档（例如：“基于 Context7 提供的 Upstash Redis v1.30 文档生成”）。
+3. 完整性：提供的代码片段应包含必要的 import 语句和配置代码，确保用户可以直接复制运行。
+4. 无过时代码：严禁使用文档中标注为 Deprecated（已弃用）的方法。
+
+## 示例行为模式
+
+**用户输入：**
+"使用 Upstash Redis 写一个限流器，use context7"
+
+**AI 内部思考过程：**
+1. 识别：用户需要 Upstash Redis 库，且强制使用了 use context7。
+2. 工具调用：调用 get-library-docs(library: "upstash-redis", query: "ratelimit")。
+3. 接收上下文：获得 @upstash/ratelimit 包的最新用法（如 Ratelimit.slidingWindow）。
+4. 生成：基于检索到的 slidingWindow 示例编写代码，而不是使用旧版的固定窗口逻辑（如果已过时）。
+5. 输出：返回包含最新 API 的 TypeScript 代码。
